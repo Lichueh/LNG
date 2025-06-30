@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數據測試</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="lng_data2.js"></script>
+</head>
+
+<body>
+    <h1>LNG 數據測試</h1>
+    <div id="info"></div>
+    <div id="chart" style="width: 800px; height: 400px; border: 1px solid #ccc;"></div>
+
+    <script>
+        console.log('頁面載入完成');
+
+        // 檢查數據
+        if (typeof lngData !== 'undefined') {
+            console.log('lngData 存在，長度:', lngData.length);
+            console.log('前3個數據點:', lngData.slice(0, 3));
+            console.log('後3個數據點:', lngData.slice(-3));
+
+            document.getElementById('info').innerHTML = `
+                <p>數據載入成功！</p>
+                <p>總數據點: ${lngData.length}</p>
+                <p>第一個數據點: ${lngData[0].date} - $${lngData[0].price}</p>
+                <p>最後一個數據點: ${lngData[lngData.length - 1].date} - $${lngData[lngData.length - 1].price}</p>
+            `;
+
+            // 創建簡單圖表
+            createSimpleChart();
+        } else {
+            console.error('lngData 未定義');
+            document.getElementById('info').innerHTML = '<p style="color: red;">數據載入失敗！</p>';
+        }
+
+        function createSimpleChart() {
+            const margin = { top: 20, right: 30, bottom: 40, left: 50 };
+            const width = 800 - margin.left - margin.right;
+            const height = 400 - margin.top - margin.bottom;
+
+            // 處理數據 - 每30天取一個點
+            const processedData = lngData.filter((d, i) => i % 30 === 0).map(d => ({
+                date: d3.timeParse("%Y-%m-%d")(d.date),
+                price: +d.price
+            }));
+
+            console.log('處理後數據點:', processedData.length);
+
+            const svg = d3.select("#chart")
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom);
+
+            const g = svg.append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            // 設置比例尺
+            const xScale = d3.scaleTime()
+                .domain(d3.extent(processedData, d => d.date))
+                .range([0, width]);
+
+            const yScale = d3.scaleLinear()
+                .domain(d3.extent(processedData, d => d.price))
+                .nice()
+                .range([height, 0]);
+
+            // 添加軸
+            g.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(xScale).tickFormat(d3.timeFormat("%Y")));
+
+            g.append("g")
+                .call(d3.axisLeft(yScale));
+
+            // 創建線條
+            const line = d3.line()
+                .x(d => xScale(d.date))
+                .y(d => yScale(d.price));
+
+            g.append("path")
+                .datum(processedData)
+                .attr("fill", "none")
+                .attr("stroke", "steelblue")
+                .attr("stroke-width", 2)
+                .attr("d", line);
+
+            console.log('簡單圖表創建完成');
+        }
+    </script>
+</body>
+
+</html>
